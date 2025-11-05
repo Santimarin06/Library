@@ -1,0 +1,263 @@
+<div class="libro-container">
+  <div class="header-section">
+    <h1>Gestión de Libros</h1>
+    <button class="btn-primary" (click)="openCreateForm()" *ngIf="isAdmin() && !showForm()">
+      <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+      </svg>
+      Nuevo Libro
+    </button>
+  </div>
+
+  <div class="alert alert-error" *ngIf="errorMessage()">
+    <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    </svg>
+    <span>{{ errorMessage() }}</span>
+  </div>
+
+  <div class="alert alert-success" *ngIf="successMessage()">
+    <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+    </svg>
+    <span>{{ successMessage() }}</span>
+  </div>
+
+  <!-- Formulario de Libro -->
+  <div class="form-modal" *ngIf="showForm() && isAdmin()">
+    <div class="form-card">
+      <div class="form-header">
+        <h2>{{ isEditing() ? 'Editar Libro' : 'Nuevo Libro' }}</h2>
+        <button class="close-btn" (click)="closeForm()">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <form [formGroup]="libroForm" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label for="titulo">Título *</label>
+          <input
+            type="text"
+            id="titulo"
+            formControlName="titulo"
+            [class.error]="libroForm.get('titulo')?.invalid && libroForm.get('titulo')?.touched"
+          />
+          <span class="error-text" *ngIf="libroForm.get('titulo')?.invalid && libroForm.get('titulo')?.touched">
+            El título es requerido (mínimo 2 caracteres)
+          </span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="isbn">ISBN *</label>
+            <input
+              type="text"
+              id="isbn"
+              formControlName="isbn"
+              [class.error]="libroForm.get('isbn')?.invalid && libroForm.get('isbn')?.touched"
+            />
+            <span class="error-text" *ngIf="libroForm.get('isbn')?.invalid && libroForm.get('isbn')?.touched">
+              El ISBN es requerido (mínimo 10 caracteres)
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label for="anio">Año *</label>
+            <input
+              type="number"
+              id="anio"
+              formControlName="anio"
+              min="1000"
+              max="9999"
+              [class.error]="libroForm.get('anio')?.invalid && libroForm.get('anio')?.touched"
+            />
+            <span class="error-text" *ngIf="libroForm.get('anio')?.invalid && libroForm.get('anio')?.touched">
+              El año es requerido y debe ser válido
+            </span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="autor">Autor *</label>
+          <select
+            id="autor"
+            formControlName="autor"
+            [class.error]="libroForm.get('autor')?.invalid && libroForm.get('autor')?.touched"
+          >
+            <option [value]="null">Seleccione un autor</option>
+            <option *ngFor="let autor of autores()" [value]="autor.autorId">
+              {{ autor.nombre }} {{ autor.apellido }}
+            </option>
+          </select>
+          <span class="error-text" *ngIf="libroForm.get('autor')?.invalid && libroForm.get('autor')?.touched">
+            Debe seleccionar un autor
+          </span>
+          <span class="hint-text" *ngIf="autores().length === 0">
+            No hay autores disponibles. Por favor, crea un autor primero.
+          </span>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="closeForm()" [disabled]="isLoading()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="isLoading() || autores().length === 0">
+            <span *ngIf="!isLoading()">{{ isEditing() ? 'Actualizar' : 'Crear' }}</span>
+            <span *ngIf="isLoading()">Procesando...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Barra de búsqueda -->
+  <div class="search-section" *ngIf="!isAdmin()">
+    <div class="search-container">
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Buscar por nombre, año o autor..."
+        [(ngModel)]="searchTerm"
+        (input)="onSearch()"
+        [ngModelOptions]="{standalone: true}"
+      />
+      <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Formulario de Préstamo -->
+  <div class="form-modal" *ngIf="showPrestamoForm()">
+    <div class="form-card">
+      <div class="form-header">
+        <h2>Solicitar Préstamo</h2>
+        <button class="close-btn" (click)="closePrestamoForm()">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="prestamo-info" *ngIf="libroSeleccionadoParaPrestamo()">
+        <h3>{{ libroSeleccionadoParaPrestamo()!.titulo }}</h3>
+        <p><strong>Autor:</strong> {{ getAutorNombre(libroSeleccionadoParaPrestamo()!.autor) }}</p>
+        <p><strong>ISBN:</strong> {{ libroSeleccionadoParaPrestamo()!.isbn }}</p>
+        <p><strong>Año:</strong> {{ libroSeleccionadoParaPrestamo()!.anio }}</p>
+      </div>
+
+      <form [formGroup]="prestamoForm" (ngSubmit)="solicitarPrestamo()">
+        <div class="form-group">
+          <label for="fechaDevolucion">Fecha de Devolución *</label>
+          <input
+            type="date"
+            id="fechaDevolucion"
+            formControlName="fechaDevolucion"
+            [class.error]="prestamoForm.get('fechaDevolucion')?.invalid && prestamoForm.get('fechaDevolucion')?.touched"
+            [min]="getMinDate()"
+          />
+          <span class="error-text" *ngIf="prestamoForm.get('fechaDevolucion')?.invalid && prestamoForm.get('fechaDevolucion')?.touched">
+            La fecha de devolución es requerida
+          </span>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="closePrestamoForm()" [disabled]="isLoading()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="isLoading()">
+            <span *ngIf="!isLoading()">Solicitar Préstamo</span>
+            <span *ngIf="isLoading()">Procesando...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Vista de Catálogo para LECTOR -->
+  <div class="catalog-container" *ngIf="!isAdmin()">
+    <div class="loading" *ngIf="isLoading() && librosFiltrados().length === 0">
+      <span>Cargando libros...</span>
+    </div>
+
+    <div class="empty-state" *ngIf="!isLoading() && librosFiltrados().length === 0">
+      <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+      </svg>
+      <p>No se encontraron libros</p>
+    </div>
+
+    <div class="catalog-grid" *ngIf="!isLoading() || librosFiltrados().length > 0">
+      <div class="book-card" *ngFor="let libro of librosFiltrados()">
+        <div class="book-header">
+          <h3 class="book-title">{{ libro.titulo }}</h3>
+        </div>
+        <div class="book-body">
+          <p class="book-author"><strong>Autor: </strong> {{getAutorNombre(libro.autor) }}</p>
+          <p class="book-isbn"><strong>ISBN: </strong> {{libro.isbn }}</p>
+          <p class="book-year"><strong>Año: </strong>{{libro.anio }}</p>
+        </div>
+        <div class="book-footer">
+          <button class="btn-prestamo" (click)="openPrestamoForm(libro)">
+            <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            Solicitar Préstamo
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de Libros para ADMIN -->
+  <div class="table-container" *ngIf="isAdmin()">
+    <div class="loading" *ngIf="isLoading() && libros().length === 0">
+      <span>Cargando libros...</span>
+    </div>
+
+    <div class="empty-state" *ngIf="!isLoading() && libros().length === 0">
+      <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+      </svg>
+      <p>No hay libros registrados</p>
+    </div>
+
+    <table class="data-table" *ngIf="!isLoading() || libros().length > 0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Título</th>
+          <th>ISBN</th>
+          <th>Año</th>
+          <th>Autor</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let libro of libros()">
+          <td>{{ libro.libroId }}</td>
+          <td>{{ libro.titulo }}</td>
+          <td>{{ libro.isbn }}</td>
+          <td>{{ libro.anio }}</td>
+          <td>{{ getAutorNombre(libro.autor) }}</td>
+          <td>
+            <div class="action-buttons">
+              <button class="btn-edit" (click)="openEditForm(libro)" title="Editar">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+              </button>
+              <button class="btn-delete" (click)="onDelete(libro.libroId!)" title="Eliminar">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

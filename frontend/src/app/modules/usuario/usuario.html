@@ -1,0 +1,214 @@
+<div class="usuario-container">
+  <div class="header-section">
+    <h1>Gestión de Usuarios</h1>
+    <button class="btn-primary" (click)="openCreateForm()" *ngIf="isAdmin() && !showForm()">
+      <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+      </svg>
+      Nuevo Usuario
+    </button>
+  </div>
+
+  <div class="alert alert-error" *ngIf="errorMessage()">
+    <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    </svg>
+    <span>{{ errorMessage() }}</span>
+  </div>
+
+  <div class="alert alert-success" *ngIf="successMessage()">
+    <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+    </svg>
+    <span>{{ successMessage() }}</span>
+  </div>
+
+  <!-- Access Denied Message -->
+  <div class="access-denied" *ngIf="!isAdmin()">
+    <div class="denied-card">
+      <svg class="denied-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+      </svg>
+      <h2>Acceso Denegado</h2>
+      <p>No tienes permisos para acceder a esta sección. Solo los administradores pueden gestionar usuarios.</p>
+    </div>
+  </div>
+
+  <!-- Formulario de Usuario -->
+  <div class="form-modal" *ngIf="showForm() && isAdmin()">
+    <div class="form-card">
+      <div class="form-header">
+        <h2>{{ isEditing() ? 'Editar Usuario' : 'Nuevo Usuario' }}</h2>
+        <button class="close-btn" (click)="closeForm()">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <form [formGroup]="usuarioForm" (ngSubmit)="onSubmit()">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nombre">Nombre Completo *</label>
+            <input
+              type="text"
+              id="nombre"
+              formControlName="nombre"
+              [class.error]="usuarioForm.get('nombre')?.invalid && usuarioForm.get('nombre')?.touched"
+            />
+            <span class="error-text" *ngIf="usuarioForm.get('nombre')?.invalid && usuarioForm.get('nombre')?.touched">
+              El nombre es requerido (mínimo 3 caracteres)
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label for="username">Usuario *</label>
+            <input
+              type="text"
+              id="username"
+              formControlName="username"
+              [class.error]="usuarioForm.get('username')?.invalid && usuarioForm.get('username')?.touched"
+            />
+            <span class="error-text" *ngIf="usuarioForm.get('username')?.invalid && usuarioForm.get('username')?.touched">
+              El usuario es requerido (mínimo 3 caracteres)
+            </span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Correo Electrónico *</label>
+          <input
+            type="email"
+            id="email"
+            formControlName="email"
+            [class.error]="usuarioForm.get('email')?.invalid && usuarioForm.get('email')?.touched"
+          />
+          <span class="error-text" *ngIf="usuarioForm.get('email')?.invalid && usuarioForm.get('email')?.touched">
+            <span *ngIf="usuarioForm.get('email')?.errors?.['required']">El correo es requerido</span>
+            <span *ngIf="usuarioForm.get('email')?.errors?.['email']">Correo electrónico inválido</span>
+          </span>
+        </div>
+
+        <div class="form-group" *ngIf="!isEditing()">
+          <label for="passwordHash">Contraseña *</label>
+          <input
+            type="password"
+            id="passwordHash"
+            formControlName="passwordHash"
+            [class.error]="usuarioForm.get('passwordHash')?.invalid && usuarioForm.get('passwordHash')?.touched"
+          />
+          <span class="error-text" *ngIf="usuarioForm.get('passwordHash')?.invalid && usuarioForm.get('passwordHash')?.touched">
+            La contraseña es requerida (mínimo 6 caracteres)
+          </span>
+        </div>
+
+        <div class="form-group" *ngIf="isEditing()">
+          <label for="passwordHash-edit">Nueva Contraseña (opcional)</label>
+          <input
+            type="password"
+            id="passwordHash-edit"
+            formControlName="passwordHash"
+            placeholder="Dejar vacío para mantener la actual"
+          />
+          <span class="hint-text">Solo completa si deseas cambiar la contraseña</span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="rol">Rol *</label>
+            <select
+              id="rol"
+              formControlName="rol"
+              [class.error]="usuarioForm.get('rol')?.invalid && usuarioForm.get('rol')?.touched"
+            >
+              <option value="LECTOR">LECTOR</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="estado">Estado *</label>
+            <select
+              id="estado"
+              formControlName="estado"
+              [class.error]="usuarioForm.get('estado')?.invalid && usuarioForm.get('estado')?.touched"
+            >
+              <option value="ACTIVO">ACTIVO</option>
+              <option value="INACTIVO">INACTIVO</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="closeForm()" [disabled]="isLoading()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="isLoading()">
+            <span *ngIf="!isLoading()">{{ isEditing() ? 'Actualizar' : 'Crear' }}</span>
+            <span *ngIf="isLoading()">Procesando...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabla de Usuarios -->
+  <div class="table-container" *ngIf="isAdmin()">
+    <div class="loading" *ngIf="isLoading() && usuarios().length === 0">
+      <span>Cargando usuarios...</span>
+    </div>
+
+    <div class="empty-state" *ngIf="!isLoading() && usuarios().length === 0">
+      <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+      </svg>
+      <p>No hay usuarios registrados</p>
+    </div>
+
+    <table class="data-table" *ngIf="!isLoading() || usuarios().length > 0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Usuario</th>
+          <th>Correo</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let usuario of usuarios()">
+          <td>{{ usuario.usuarioId }}</td>
+          <td>{{ usuario.nombre }}</td>
+          <td>{{ usuario.username }}</td>
+          <td>{{ usuario.email }}</td>
+          <td>
+            <span [class]="'badge ' + getRolBadgeClass(usuario.rol)">
+              {{ usuario.rol }}
+            </span>
+          </td>
+          <td>
+            <span [class]="'badge ' + getEstadoBadgeClass(usuario.estado)">
+              {{ usuario.estado }}
+            </span>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <button class="btn-edit" (click)="openEditForm(usuario)" title="Editar">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+              </button>
+              <button class="btn-delete" (click)="onDelete(usuario.usuarioId!)" title="Eliminar">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

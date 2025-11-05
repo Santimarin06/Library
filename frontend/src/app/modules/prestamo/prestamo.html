@@ -1,0 +1,207 @@
+<div class="prestamo-container">
+  <div class="header-section">
+    <h1>{{ isAdmin() ? 'Gestión de Préstamos' : 'Mis Préstamos' }}</h1>
+    <button class="btn-primary" (click)="openCreateForm()" *ngIf="!showForm() && isAdmin()">
+      <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+      </svg>
+      Nuevo Préstamo
+    </button>
+  </div>
+
+  <div class="alert alert-error" *ngIf="errorMessage()">
+    <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    </svg>
+    <span>{{ errorMessage() }}</span>
+  </div>
+
+  <div class="alert alert-success" *ngIf="successMessage()">
+    <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+    </svg>
+    <span>{{ successMessage() }}</span>
+  </div>
+
+  <!-- Formulario de Préstamo -->
+  <div class="form-modal" *ngIf="showForm()">
+    <div class="form-card">
+      <div class="form-header">
+        <h2>{{ isEditing() ? 'Editar Préstamo' : 'Nuevo Préstamo' }}</h2>
+        <button class="close-btn" (click)="closeForm()">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <form [formGroup]="prestamoForm" (ngSubmit)="onSubmit()">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="libro">Libro *</label>
+            <select
+              id="libro"
+              formControlName="libro"
+              [class.error]="prestamoForm.get('libro')?.invalid && prestamoForm.get('libro')?.touched"
+            >
+              <option [value]="null">Seleccione un libro</option>
+              <option *ngFor="let libro of libros()" [value]="libro.libroId">
+                {{ libro.titulo }} - {{ libro.isbn }}
+              </option>
+            </select>
+            <span class="error-text" *ngIf="prestamoForm.get('libro')?.invalid && prestamoForm.get('libro')?.touched">
+              Debe seleccionar un libro
+            </span>
+            <span class="hint-text" *ngIf="libros().length === 0">
+              No hay libros disponibles. Por favor, crea un libro primero.
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label for="usuario">Usuario *</label>
+            <select
+              id="usuario"
+              formControlName="usuario"
+              [class.error]="prestamoForm.get('usuario')?.invalid && prestamoForm.get('usuario')?.touched"
+              [disabled]="!isAdmin()"
+              *ngIf="isAdmin() || usuarios().length > 0"
+            >
+              <option [value]="null">Seleccione un usuario</option>
+              <option *ngFor="let usuario of usuarios()" [value]="usuario.usuarioId">
+                {{ usuario.nombre }} ({{ usuario.username }})
+              </option>
+            </select>
+            <input
+              *ngIf="!isAdmin() && usuarios().length > 0"
+              type="text"
+              [value]="usuarios()[0]?.nombre + ' (' + usuarios()[0]?.username + ')'"
+              disabled
+              class="form-input-readonly"
+            />
+            <span class="error-text" *ngIf="prestamoForm.get('usuario')?.invalid && prestamoForm.get('usuario')?.touched">
+              Debe seleccionar un usuario
+            </span>
+            <span class="hint-text" *ngIf="!isAdmin()">
+              El préstamo se creará para tu cuenta automáticamente.
+            </span>
+            <span class="hint-text" *ngIf="!isAdmin() && usuarios().length === 0">
+              Cargando información de usuario...
+            </span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fechaPrestamo">Fecha de Préstamo *</label>
+            <input
+              type="date"
+              id="fechaPrestamo"
+              formControlName="fechaPrestamo"
+              [class.error]="prestamoForm.get('fechaPrestamo')?.invalid && prestamoForm.get('fechaPrestamo')?.touched"
+            />
+            <span class="error-text" *ngIf="prestamoForm.get('fechaPrestamo')?.invalid && prestamoForm.get('fechaPrestamo')?.touched">
+              La fecha de préstamo es requerida
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label for="fechaDevolucion">Fecha de Devolución</label>
+            <input
+              type="date"
+              id="fechaDevolucion"
+              formControlName="fechaDevolucion"
+              [disabled]="prestamoForm.get('devuelto')?.value"
+            />
+            <span class="hint-text">Opcional - Se puede establecer cuando se devuelva el libro</span>
+          </div>
+        </div>
+
+        <div class="form-group" *ngIf="isEditing()">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              formControlName="devuelto"
+            />
+            <span>Marcar como devuelto</span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="closeForm()" [disabled]="isLoading()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="isLoading() || libros().length === 0 || (isAdmin() && usuarios().length === 0)">
+            <span *ngIf="!isLoading()">{{ isEditing() ? 'Actualizar' : 'Crear' }}</span>
+            <span *ngIf="isLoading()">Procesando...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabla de Préstamos -->
+  <div class="table-container">
+    <div class="loading" *ngIf="isLoading() && prestamosFiltrados().length === 0">
+      <span>Cargando préstamos...</span>
+    </div>
+
+    <div class="empty-state" *ngIf="!isLoading() && prestamosFiltrados().length === 0">
+      <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>
+      <p>{{ isAdmin() ? 'No hay préstamos registrados' : 'No tienes préstamos registrados' }}</p>
+    </div>
+
+    <table class="data-table" *ngIf="!isLoading() || prestamosFiltrados().length > 0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Libro</th>
+          <th *ngIf="isAdmin()">Usuario</th>
+          <th>Fecha Préstamo</th>
+          <th>Fecha Devolución</th>
+          <th>Estado</th>
+          <th *ngIf="isAdmin()">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let prestamo of prestamosFiltrados()" [class.returned]="prestamo.devuelto">
+          <td>{{ prestamo.prestamoId }}</td>
+          <td>{{ getLibroTitulo(prestamo.libro) }}</td>
+          <td *ngIf="isAdmin()">{{ getUsuarioNombre(prestamo.usuario) }}</td>
+          <td>{{ formatDate(prestamo.fechaPrestamo) }}</td>
+          <td>{{ formatDate(prestamo.fechaDevolucion) }}</td>
+          <td>
+            <span [class]="'badge ' + (prestamo.devuelto ? 'badge-returned' : 'badge-active')">
+              {{ prestamo.devuelto ? 'Devuelto' : 'Activo' }}
+            </span>
+          </td>
+          <td *ngIf="isAdmin()">
+            <div class="action-buttons">
+              <button 
+                class="btn-mark-returned" 
+                (click)="marcarDevuelto(prestamo)" 
+                *ngIf="!prestamo.devuelto"
+                title="Marcar como devuelto"
+              >
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </button>
+              <button class="btn-edit" (click)="openEditForm(prestamo)" title="Editar">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+              </button>
+              <button class="btn-delete" (click)="onDelete(prestamo.prestamoId!)" title="Eliminar">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

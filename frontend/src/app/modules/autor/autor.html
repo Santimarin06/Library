@@ -1,0 +1,152 @@
+<div class="autor-container">
+  <div class="header-section">
+    <h1>Gestión de Autores</h1>
+    <button class="btn-primary" (click)="openCreateForm()" *ngIf="isAdmin() && !showForm()">
+      <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+      </svg>
+      Nuevo Autor
+    </button>
+  </div>
+
+  <div class="alert alert-error" *ngIf="errorMessage()">
+    <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    </svg>
+    <span>{{ errorMessage() }}</span>
+  </div>
+
+  <div class="alert alert-success" *ngIf="successMessage()">
+    <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+    </svg>
+    <span>{{ successMessage() }}</span>
+  </div>
+
+  <!-- Access Denied Message -->
+  <div class="access-denied" *ngIf="!isAdmin()">
+    <div class="denied-card">
+      <svg class="denied-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+      </svg>
+      <h2>Acceso Denegado</h2>
+      <p>No tienes permisos para acceder a esta sección. Solo los administradores pueden gestionar autores.</p>
+    </div>
+  </div>
+
+  <!-- Formulario de Autor -->
+  <div class="form-modal" *ngIf="showForm() && isAdmin()">
+    <div class="form-card">
+      <div class="form-header">
+        <h2>{{ isEditing() ? 'Editar Autor' : 'Nuevo Autor' }}</h2>
+        <button class="close-btn" (click)="closeForm()">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <form [formGroup]="autorForm" (ngSubmit)="onSubmit()">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nombre">Nombre *</label>
+            <input
+              type="text"
+              id="nombre"
+              formControlName="nombre"
+              [class.error]="autorForm.get('nombre')?.invalid && autorForm.get('nombre')?.touched"
+            />
+            <span class="error-text" *ngIf="autorForm.get('nombre')?.invalid && autorForm.get('nombre')?.touched">
+              El nombre es requerido (mínimo 2 caracteres)
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label for="apellido">Apellido *</label>
+            <input
+              type="text"
+              id="apellido"
+              formControlName="apellido"
+              [class.error]="autorForm.get('apellido')?.invalid && autorForm.get('apellido')?.touched"
+            />
+            <span class="error-text" *ngIf="autorForm.get('apellido')?.invalid && autorForm.get('apellido')?.touched">
+              El apellido es requerido (mínimo 2 caracteres)
+            </span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Correo Electrónico *</label>
+          <input
+            type="email"
+            id="email"
+            formControlName="email"
+            [class.error]="autorForm.get('email')?.invalid && autorForm.get('email')?.touched"
+          />
+          <span class="error-text" *ngIf="autorForm.get('email')?.invalid && autorForm.get('email')?.touched">
+            <span *ngIf="autorForm.get('email')?.errors?.['required']">El correo es requerido</span>
+            <span *ngIf="autorForm.get('email')?.errors?.['email']">Correo electrónico inválido</span>
+          </span>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="closeForm()" [disabled]="isLoading()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="isLoading()">
+            <span *ngIf="!isLoading()">{{ isEditing() ? 'Actualizar' : 'Crear' }}</span>
+            <span *ngIf="isLoading()">Procesando...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabla de Autores -->
+  <div class="table-container" *ngIf="isAdmin()">
+    <div class="loading" *ngIf="isLoading() && autores().length === 0">
+      <span>Cargando autores...</span>
+    </div>
+
+    <div class="empty-state" *ngIf="!isLoading() && autores().length === 0">
+      <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+      </svg>
+      <p>No hay autores registrados</p>
+    </div>
+
+    <table class="data-table" *ngIf="!isLoading() || autores().length > 0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Apellido</th>
+          <th>Correo</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let autor of autores()">
+          <td>{{ autor.autorId }}</td>
+          <td>{{ autor.nombre }}</td>
+          <td>{{ autor.apellido }}</td>
+          <td>{{ autor.email }}</td>
+          <td>
+            <div class="action-buttons">
+              <button class="btn-edit" (click)="openEditForm(autor)" title="Editar">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+              </button>
+              <button class="btn-delete" (click)="onDelete(autor.autorId!)" title="Eliminar">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

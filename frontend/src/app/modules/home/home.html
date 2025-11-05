@@ -1,0 +1,88 @@
+<div class="home-container">
+  <div class="welcome-section">
+    <h1>Bienvenido, {{ currentUsername() }}</h1>
+    <p class="subtitle">Sistema de Gestión de Biblioteca</p>
+  </div>
+
+  <div class="loading" *ngIf="isLoading()">
+    <span>Cargando estadísticas...</span>
+  </div>
+
+  <div class="dashboard" *ngIf="!isLoading()">
+    <!-- Información adicional -->
+    <div class="info-grid" *ngIf="isAdmin()">
+      <!-- Libros recientes -->
+      <div class="info-card">
+        <h2>
+          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+          Libros Recientes
+        </h2>
+        <div class="list-container">
+          <div class="list-item" *ngFor="let libro of recentLibros()">
+            <span class="item-title">{{ libro.titulo }}</span>
+            <span class="item-meta">ISBN: {{ libro.isbn }}</span>
+          </div>
+          <div class="empty-message" *ngIf="recentLibros().length === 0">
+            No hay libros registrados
+          </div>
+        </div>
+      </div>
+
+      <!-- Préstamos recientes -->
+      <div class="info-card">
+        <h2>
+          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Préstamos Recientes
+        </h2>
+        <div class="list-container">
+          <div class="list-item loan-item" *ngFor="let prestamo of recentPrestamos()">
+            <div class="loan-header">
+              <span class="item-title">{{ getLibroTitulo(prestamo.libro) }}</span>
+              <span [class]="'badge ' + (prestamo.devuelto ? 'badge-returned' : 'badge-active')">
+                {{ prestamo.devuelto ? 'Devuelto' : 'Activo' }}
+              </span>
+            </div>
+            <div class="loan-meta">
+              <span>Usuario: {{ getUsuarioNombre(prestamo.usuario) }}</span>
+              <span>Fecha: {{ formatDate(prestamo.fechaPrestamo) }}</span>
+            </div>
+          </div>
+          <div class="empty-message" *ngIf="recentPrestamos().length === 0">
+            No hay préstamos registrados
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensaje para LECTOR -->
+    <div class="lector-info" *ngIf="!isAdmin()">
+      <div class="info-card">
+        <h2>
+          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Tus Préstamos Activos
+        </h2>
+        <div class="list-container">
+          <div class="list-item loan-item" *ngFor="let prestamo of prestamosActivosList()">
+            <div class="loan-header">
+              <span class="item-title">{{ getLibroTitulo(prestamo.libro) }}</span>
+              <span class="badge badge-active">Activo</span>
+            </div>
+            <div class="loan-meta">
+              <span>Prestado: {{ formatDate(prestamo.fechaPrestamo) }}</span>
+              <span *ngIf="prestamo.fechaDevolucion">Devuelto: {{ formatDate(prestamo.fechaDevolucion) }}</span>
+            </div>
+          </div>
+          <div class="empty-message" *ngIf="prestamosActivosList().length === 0">
+            No tienes préstamos activos
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
